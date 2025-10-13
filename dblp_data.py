@@ -3,7 +3,6 @@ import os
 import gzip
 import requests
 import html.entities
-from collections import Counter
 # from lxml import etree as ET
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
@@ -87,9 +86,8 @@ def get_dblp_file():
 
 
 def get_authors_and_pubs(local_file=LOCAL_FILE):
-    authors = []
+    authors = {}
     publications = {}
-    c = Counter()
 
     # iterparse returns events and elements as they are read
     with gzip.open(local_file, 'rb') as f:
@@ -98,40 +96,21 @@ def get_authors_and_pubs(local_file=LOCAL_FILE):
 
         for event, elem in tqdm(context, desc="parsing dblp.xml.gz", unit='elem'):
             tag = elem.tag
-            c[tag] += 1
 
-            # --- PERSON entries ---
-            if tag == "person":
-                person_key = elem.attrib.get("key")
-                names = [a.text for a in elem.findall("author") if a.text]
-                urls = [u.text for u in elem.findall("url") if u.text]
-                notes = [n.text for n in elem.findall("note") if n.text]
-                pubs = [c.text for c in elem.findall("cite") if c.text and c.text != "..."]
+            if tag in {"article", "inproceedings", "proceedings", "book",
+                         "incollection", "phdthesis", "mastersthesis",
+                         "www", "data"}:
+                pub_key = elem.attrib.get("key")
+                if pub_key:
+                    author_names = [a.text for a in elem.findall("author") if a.text]
+                    publications[pub_key] = set(author_names)
+                    for author_name in author_names:
+                        if author_name not in authors:
+                            authors[author_name] = set()
+                        authors[author_name].add(pub_key)
 
-                authors.append({
-                    "key": person_key,
-                    "names": names,
-                    "urls": urls,
-                    "notes": notes,
-                    "publications": pubs,
-                })
-
-                # clear to free memory
                 elem.clear()
                 root.clear()
-
-            # # --- PUBLICATION entries ---
-            # elif tag in {"article", "inproceedings", "proceedings", "book",
-            #              "incollection", "phdthesis", "mastersthesis",
-            #              "www", "data"}:
-            #     pub_key = elem.attrib.get("key")
-            #     if pub_key:
-            #         author_names = [a.text for a in elem.findall("author") if a.text]
-            #         publications[pub_key] = author_names
-
-            #     elem.clear()
-            #     root.clear()
-        print(c)
 
         return authors, publications
 
