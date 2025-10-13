@@ -142,21 +142,28 @@ def get_author2pubs():
     if not os.path.exists(f'{LOCAL_DIR}/author2pubs.json.gz'):
         cache_author_pub_mappings()
 
-    with gzip.open(f'{LOCAL_DIR}/author2pub.json.gz', 'r') as f:
-        author2pub = json.load(f)
+    with gzip.open(f'{LOCAL_DIR}/author2pubs.json.gz', 'r') as f:
+        author2pubs = json.load(f)
 
-    return author2pub
+    return author2pubs
 
 
 def get_author2id():
-    author2pub = get_author2pubs()
-    author2id = {}
-    for author, pubs in author2pub.items():
-        author_homepages = [x for x in pubs if x.startswith('homepages/')]
-        if author_homepages:
-            author_id = author_homepages[0][len('homepages/'):]
-            author2id[author] = author_id
-    return author2id
+    if not os.path.exists(f'{LOCAL_DIR}/author2id.json.gz'):
+        author2pub = get_author2pubs()
+        author2id = {}
+        for author, pubs in author2pub.items():
+            author_homepages = [x for x in pubs if x.startswith('homepages/')]
+            if author_homepages:
+                author_id = author_homepages[0][len('homepages/'):]
+                author2id[author] = author_id
+        with gzip.open(f'{LOCAL_DIR}/author2id.json.gz', 'w') as f:
+            json.dump(author2id, f)
+        return author2id
+    else:
+        with gzip.open(f'{LOCAL_DIR}/author2id.json.gz', 'r') as f:
+            author2id = json.load(f)
+        return author2id
 
 
 def main():
