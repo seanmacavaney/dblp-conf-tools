@@ -92,12 +92,12 @@ def get_dblp_file():
     return f'{LOCAL_DIR}/{LOCAL_FILE}'
 
 
-def cache_author2pub(local_file=LOCAL_FILE):
+def cache_author2pub():
     authors = {}
     publications = {}
 
     # iterparse returns events and elements as they are read
-    with gzip.open(local_file, 'rb') as f:
+    with gzip.open(get_dblp_file(), 'rb') as f:
         context = ET.iterparse(f, events=('end',), parser=parser)
         _, root = next(context)  # get root element <dblp>
 
