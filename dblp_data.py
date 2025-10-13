@@ -166,6 +166,24 @@ def get_author2id():
         return author2id
 
 
+def get_author_id_affiliations(author_id):
+    if not os.path.exists(f'{LOCAL_DIR}/ext_author_info'):
+        os.makedirs(f'{LOCAL_DIR}/ext_author_info', exist_ok=True)
+    author_id_path = author_id.replace('/', '__')
+    if not os.path.exists(f'{LOCAL_DIR}/ext_author_info/{author_id_path}.xml'):
+        resp = requests.get(f'https://dblp.org/pid/{author_id}.xml', timeout=30)
+        resp.raise_for_status()
+        with open(f'{LOCAL_DIR}/ext_author_info/{author_id_path}.xml', 'wb') as f:
+            f.write(resp.content)
+    tree = ET.parse(f'{LOCAL_DIR}/ext_author_info/{author_id_path}.xml')
+    root = tree.getroot()
+    affiliations = set()
+    for note in root.findall(".//note[@type='affiliation']"):
+        if note.text:
+            affiliations.add(note.text.strip())
+    return list(affiliations)
+
+
 def main():
     author2id = get_author2id()
     import pdb; pdb.set_trace()
