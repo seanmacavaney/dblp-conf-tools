@@ -120,11 +120,11 @@ def cache_author_pub_mappings():
                 root.clear()
 
     print('writing author2pubs cache')
-    with gzip.open(f'{LOCAL_DIR}/author2pubs.json.gz', 'w') as f:
+    with gzip.open(f'{LOCAL_DIR}/author2pubs.json.gz', 'wb') as f:
         json.dump(authors, f)
 
     print('writing pub2authors cache')
-    with gzip,open(f'{LOCAL_DIR}/pub2authors.json.gz', 'w') as f:
+    with gzip,open(f'{LOCAL_DIR}/pub2authors.json.gz', 'wb') as f:
         json.dump(publications, f)
 
 
