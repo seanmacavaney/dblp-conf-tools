@@ -152,8 +152,10 @@ def get_author2id():
     author2pub = get_author2pubs()
     author2id = {}
     for author, pubs in author2pub.items():
-        author_id = [x for x in pubs if x.startswith('homepages/')]
-        author2id[author] = author_id
+        author_homepages = [x for x in pubs if x.startswith('homepages/')]
+        if author_homepages:
+            author_id = author_homepages[0][len('homepages/'):]
+            author2id[author] = author_id
     return author2id
 
 
