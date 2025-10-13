@@ -110,39 +110,39 @@ def cache_author_pub_mappings():
                 pub_key = elem.attrib.get("key")
                 if pub_key:
                     author_names = [a.text for a in elem.findall("author") if a.text]
-                    publications[pub_key] = set(author_names)
+                    publications[pub_key] = author_names
                     for author_name in author_names:
                         if author_name not in authors:
-                            authors[author_name] = set()
-                        authors[author_name].add(pub_key)
+                            authors[author_name] = []
+                        authors[author_name].append(pub_key)
 
                 elem.clear()
                 root.clear()
 
     print('writing author2pubs cache')
-    with open(f'{LOCAL_DIR}/author2pubs.json', 'w') as f:
-        json.dump({k: list(v) for k, v in authors.items()}, f)
+    with gzip.open(f'{LOCAL_DIR}/author2pubs.json.gz', 'w') as f:
+        json.dump(authors, f)
 
     print('writing pub2authors cache')
-    with open(f'{LOCAL_DIR}/pub2authors.json', 'w') as f:
-        json.dump({k: list(v) for k, v in publications.items()}, f)
+    with gzip,open(f'{LOCAL_DIR}/pub2authors.json.gz', 'w') as f:
+        json.dump(publications, f)
 
 
 def get_pub2authors():
-    if not os.path.exists(f'{LOCAL_DIR}/pub2authors.json'):
+    if not os.path.exists(f'{LOCAL_DIR}/pub2authors.json.gz'):
         cache_author_pub_mappings()
 
-    with open(f'{LOCAL_DIR}/pub2authors.json', 'r') as f:
+    with gzip.open(f'{LOCAL_DIR}/pub2authors.json.gz', 'r') as f:
         pub2authors = json.load(f)
 
     return pub2authors
 
 
 def get_author2pubs():
-    if not os.path.exists(f'{LOCAL_DIR}/author2pubs.json'):
+    if not os.path.exists(f'{LOCAL_DIR}/author2pubs.json.gz'):
         cache_author_pub_mappings()
 
-    with open(f'{LOCAL_DIR}/author2pub.json', 'r') as f:
+    with gzip.open(f'{LOCAL_DIR}/author2pub.json.gz', 'r') as f:
         author2pub = json.load(f)
 
     return author2pub
