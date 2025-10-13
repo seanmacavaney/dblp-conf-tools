@@ -92,7 +92,7 @@ def get_dblp_file():
     return f'{LOCAL_DIR}/{LOCAL_FILE}'
 
 
-def cache_author2pub():
+def cache_author_pub_mappings():
     authors = {}
     publications = {}
 
@@ -101,7 +101,7 @@ def cache_author2pub():
         context = ET.iterparse(f, events=('end',), parser=parser)
         _, root = next(context)  # get root element <dblp>
 
-        for event, elem in tqdm(context, desc="extracting author2pub from dblp.xml.gz", unit='elem'):
+        for event, elem in tqdm(context, desc="extracting author/pub mappings from dblp.xml.gz", unit='elem'):
             tag = elem.tag
 
             if tag in {"article", "inproceedings", "proceedings", "book",
@@ -130,7 +130,7 @@ def cache_author2pub():
 
 def get_pub2authors():
     if not os.path.exists(f'{LOCAL_DIR}/pub2authors.json'):
-        cache_author2pub()
+        cache_author_pub_mappings()
 
     with open(f'{LOCAL_DIR}/pub2authors.json', 'r') as f:
         pub2authors = json.load(f)
@@ -140,7 +140,7 @@ def get_pub2authors():
 
 def get_author2pubs():
     if not os.path.exists(f'{LOCAL_DIR}/author2pubs.json'):
-        cache_author2pub()
+        cache_author_pub_mappings()
 
     with open(f'{LOCAL_DIR}/author2pub.json', 'r') as f:
         author2pub = json.load(f)
@@ -148,12 +148,19 @@ def get_author2pubs():
     return author2pub
 
 
+def get_author2id():
+    author2pub = get_author2pubs()
+    author2id = {}
+    for author, pubs in author2pub.items():
+        author_id = [x for x in pubs if x.startswith('homepages/')]
+        author2id[author] = author_id
+    return author2id
+
+
 def main():
-    # get_dblp_file()
-    author2pubs = get_author2pubs()
-    pub2authors = get_pub2authors()
-    # import pdb; pdb.set_trace()
-    author2pubs, pub2authors
+    author2id = get_author2id()
+    import pdb; pdb.set_trace()
+    author2id
 
 
 if __name__ == "__main__":
