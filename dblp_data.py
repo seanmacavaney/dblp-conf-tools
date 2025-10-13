@@ -1,3 +1,4 @@
+import json
 import hashlib
 import os
 import gzip
@@ -10,6 +11,7 @@ from tqdm import tqdm
 DBLP_URL = "https://dblp.org/xml/dblp.xml.gz"
 MD5_URL = "https://dblp.org/xml/dblp.xml.gz.md5"
 LOCAL_FILE = "dblp.xml.gz"
+LOCAL_DIR = 'dblp_data'
 ETAG_FILE = LOCAL_FILE + ".etag"
 CHUNK_SIZE = 8192
 
@@ -57,8 +59,8 @@ def download_file(url, dest_path, etag=None):
 
 
 def get_local_etag():
-    if os.path.exists(ETAG_FILE):
-        with open(ETAG_FILE, "r") as f:
+    if os.path.exists(f'{LOCAL_DIR}/{ETAG_FILE}'):
+        with open(f'{LOCAL_DIR}/{ETAG_FILE}', "r") as f:
             return f.read().strip()
     return None
 
@@ -71,21 +73,26 @@ def get_dblp_file():
 
     if new_etag is None:
         print("dblp.xml.gz already up-to-date.")
-        return LOCAL_FILE
+        return f'{LOCAL_DIR}/{LOCAL_FILE}'
     else:
         remote_md5 = get_remote_md5()
         if new_md5.strip().lower() == remote_md5.strip().lower():
-            os.replace(tmp_file, LOCAL_FILE)
-            with open(ETAG_FILE, "w") as f:
+            if not os.path.exists(LOCAL_DIR):
+                os.makedirs(LOCAL_DIR, exist_ok=True)
+            else:
+                for f in os.listdir(LOCAL_DIR):
+                    os.remove(os.path.join(LOCAL_DIR, f))
+            os.replace(tmp_file, f'{LOCAL_DIR}/{LOCAL_FILE}')
+            with open(f'{LOCAL_DIR}/{LOCAL_FILE}', "w") as f:
                 f.write(new_etag)
         else:
             os.remove(tmp_file)
             raise ValueError("MD5 checksum mismatch — download aborted!")
 
-    return LOCAL_FILE
+    return f'{LOCAL_DIR}/{LOCAL_FILE}'
 
 
-def get_authors_and_pubs(local_file=LOCAL_FILE):
+def cache_author2pub(local_file=LOCAL_FILE):
     authors = {}
     publications = {}
 
@@ -94,7 +101,7 @@ def get_authors_and_pubs(local_file=LOCAL_FILE):
         context = ET.iterparse(f, events=('end',), parser=parser)
         _, root = next(context)  # get root element <dblp>
 
-        for event, elem in tqdm(context, desc="parsing dblp.xml.gz", unit='elem'):
+        for event, elem in tqdm(context, desc="extracting author2pub from dblp.xml.gz", unit='elem'):
             tag = elem.tag
 
             if tag in {"article", "inproceedings", "proceedings", "book",
@@ -112,14 +119,41 @@ def get_authors_and_pubs(local_file=LOCAL_FILE):
                 elem.clear()
                 root.clear()
 
-        return authors, publications
+    print('writing author2pubs cache')
+    with open(f'{LOCAL_DIR}/author2pubs.json', 'w') as f:
+        json.dump({k: list(v) for k, v in authors.items()}, f)
+
+    print('writing pub2authors cache')
+    with open(f'{LOCAL_DIR}/pub2authors.json', 'w') as f:
+        json.dump({k: list(v) for k, v in publications.items()}, f)
+
+
+def get_pub2authors():
+    if not os.path.exists(f'{LOCAL_DIR}/pub2authors.json'):
+        cache_author2pub()
+
+    with open(f'{LOCAL_DIR}/pub2authors.json', 'r') as f:
+        pub2authors = json.load(f)
+
+    return pub2authors
+
+
+def get_author2pubs():
+    if not os.path.exists(f'{LOCAL_DIR}/author2pubs.json'):
+        cache_author2pub()
+
+    with open(f'{LOCAL_DIR}/author2pub.json', 'r') as f:
+        author2pub = json.load(f)
+
+    return author2pub
 
 
 def main():
     # get_dblp_file()
-    authors, pubs = get_authors_and_pubs()
+    author2pubs = get_author2pubs()
+    pub2authors = get_pub2authors()
     # import pdb; pdb.set_trace()
-    authors, pubs
+    author2pubs, pub2authors
 
 
 if __name__ == "__main__":
