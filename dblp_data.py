@@ -157,7 +157,7 @@ def get_author2id():
             if author_homepages:
                 author_id = author_homepages[0][len('homepages/'):]
                 author2id[author] = author_id
-        with gzip.open(f'{LOCAL_DIR}/author2id.json.gz', 'w') as f:
+        with gzip.open(f'{LOCAL_DIR}/author2id.json.gz', 'wt') as f:
             json.dump(author2id, f)
         return author2id
     else:
