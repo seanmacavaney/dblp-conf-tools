@@ -1,2 +1,3 @@
 dblp_data
 *.tmp
+*.pyc

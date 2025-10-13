@@ -30,15 +30,25 @@ def main(committee_csv, author_csv):
             person_num_mapping[row['person #']] = row['first name'] + ' ' + row['last name']
 
     cois = set()
+    author_ids = {}
     with open(author_csv, newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             # Only update if conflicts is missing or empty
             dblp = row.get('dblp')
+            if dblp:
+                author_ids[row['dblp']] = row['person #']
+                person_num_mapping[row['person #']] = row['first name'] + ' ' + row['last name']
             if dblp in id2pubs:
                 for pub in id2pubs[dblp]:
                     for conflict in pub2ids[pub] & committee_ids.keys():
                         cois.add((dblp, conflict))
+    for author_dblp, committee_dblp in sorted(cois):
+        author_num = author_ids[author_dblp]
+        committee_num = committee_ids[committee_dblp]
+        author_name = person_num_mapping[author_num]
+        committee_name = person_num_mapping[committee_num]
+        print(f'{author_name} ({author_num} {author_dblp}) <-> {committee_name} ({committee_num} {committee_dblp})')
     import pdb; pdb.set_trace()
     cois
 
