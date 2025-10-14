@@ -4,7 +4,6 @@ import os
 import gzip
 import requests
 import html.entities
-# from lxml import etree as ET
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 
@@ -14,19 +13,6 @@ LOCAL_FILE = "dblp.xml.gz"
 LOCAL_DIR = 'dblp_data'
 ETAG_FILE = LOCAL_FILE + ".etag"
 CHUNK_SIZE = 8192
-
-
-
-class CustomEntity:
-    def __getitem__(self, key):
-        if key == 'umml':
-            key = 'uuml' # Fix invalid entity
-        return chr(html.entities.name2codepoint[key])
-
-
-parser = ET.XMLParser()
-parser.entity.update(html.entities.entitydefs)
-parser.entity['umml'] = parser.entity['uuml']
 
 
 def get_remote_md5():
@@ -66,6 +52,9 @@ def get_local_etag():
 
 
 def get_dblp_file():
+    if os.environ.get('UPDATE_DBLP_DATA') != '1' and os.path.exists(f'{LOCAL_DIR}/{LOCAL_FILE}'):
+        return f'{LOCAL_DIR}/{LOCAL_FILE}'
+
     local_etag = get_local_etag()
     tmp_file = LOCAL_FILE + ".tmp"
 
@@ -95,61 +84,77 @@ def get_dblp_file():
 def cache_author_pub_mappings():
     authors = {}
     publications = {}
+    disambiguations = {}
 
     # iterparse returns events and elements as they are read
     with gzip.open(get_dblp_file(), 'rb') as f:
+        parser = ET.XMLParser()
+        parser.entity.update(html.entities.entitydefs)
+        parser.entity['umml'] = parser.entity['uuml']
         context = ET.iterparse(f, events=('end',), parser=parser)
         _, root = next(context)  # get root element <dblp>
 
         for event, elem in tqdm(context, desc="extracting author/pub mappings from dblp.xml.gz", unit='elem'):
             tag = elem.tag
-
             if tag in {"article", "inproceedings", "proceedings", "book",
                          "incollection", "phdthesis", "mastersthesis",
-                         "www", "data"}:
+                         "www", "data"} and ((el_year := elem.find("year")) is None or int(el_year.text) >= 2020):
                 pub_key = elem.attrib.get("key")
                 if pub_key:
                     author_names = [a.text for a in elem.findall("author") if a.text]
-                    publications[pub_key] = author_names
-                    for author_name in author_names:
-                        if author_name not in authors:
-                            authors[author_name] = []
-                        authors[author_name].append(pub_key)
+                    if elem.attrib.get("publtype") == "disambiguation":
+                        assert pub_key.startswith('homepages/')
+                        for name in author_names:
+                            disambiguations[name] = pub_key[len('homepages/'):]
+                    else:
+                        publications[pub_key] = author_names
+                        for author_name in author_names:
+                            if author_name not in authors:
+                                authors[author_name] = []
+                            authors[author_name].append(pub_key)
 
                 elem.clear()
                 root.clear()
 
     print('writing author2pubs cache')
-    with gzip.open(f'{LOCAL_DIR}/author2pubs.json.gz', 'wt') as f:
+    with gzip.open(f'{LOCAL_DIR}/author2pubs.2020.json.gz', 'wt') as f:
         json.dump(authors, f)
 
     print('writing pub2authors cache')
-    with gzip.open(f'{LOCAL_DIR}/pub2authors.json.gz', 'wt') as f:
+    with gzip.open(f'{LOCAL_DIR}/pub2authors.2020.json.gz', 'wt') as f:
         json.dump(publications, f)
+
+    print('writing disambiguation2id cache')
+    with gzip.open(f'{LOCAL_DIR}/disambiguation2id.2020.json.gz', 'wt') as f:
+        json.dump(disambiguations, f)
 
 
 def get_pub2authors():
-    if not os.path.exists(f'{LOCAL_DIR}/pub2authors.json.gz'):
+    if not os.path.exists(f'{LOCAL_DIR}/pub2authors.2020.json.gz'):
         cache_author_pub_mappings()
-
-    with gzip.open(f'{LOCAL_DIR}/pub2authors.json.gz', 'r') as f:
+    with gzip.open(f'{LOCAL_DIR}/pub2authors.2020.json.gz', 'r') as f:
         pub2authors = json.load(f)
-
     return pub2authors
 
 
 def get_author2pubs():
-    if not os.path.exists(f'{LOCAL_DIR}/author2pubs.json.gz'):
+    if not os.path.exists(f'{LOCAL_DIR}/author2pubs.2020.json.gz'):
         cache_author_pub_mappings()
-
-    with gzip.open(f'{LOCAL_DIR}/author2pubs.json.gz', 'r') as f:
+    with gzip.open(f'{LOCAL_DIR}/author2pubs.2020.json.gz', 'r') as f:
         author2pubs = json.load(f)
-
     return author2pubs
 
 
+def get_disambiguation2id():
+    if not os.path.exists(f'{LOCAL_DIR}/disambiguation2id.2020.json.gz'):
+        cache_author_pub_mappings()
+    with gzip.open(f'{LOCAL_DIR}/disambiguation2id.2020.json.gz', 'r') as f:
+        disambiguation2id = json.load(f)
+    return disambiguation2id
+
+
 def get_author2id():
-    if not os.path.exists(f'{LOCAL_DIR}/author2id.json.gz'):
+    if not os.path.exists(f'{LOCAL_DIR}/author2id.2020.json.gz'):
         author2pub = get_author2pubs()
         author2id = {}
         for author, pubs in author2pub.items():
@@ -157,11 +162,11 @@ def get_author2id():
             if author_homepages:
                 author_id = author_homepages[0][len('homepages/'):]
                 author2id[author] = author_id
-        with gzip.open(f'{LOCAL_DIR}/author2id.json.gz', 'wt') as f:
+        with gzip.open(f'{LOCAL_DIR}/author2id.2020.json.gz', 'wt') as f:
             json.dump(author2id, f)
         return author2id
     else:
-        with gzip.open(f'{LOCAL_DIR}/author2id.json.gz', 'r') as f:
+        with gzip.open(f'{LOCAL_DIR}/author2id.2020.json.gz', 'r') as f:
             author2id = json.load(f)
         return author2id
 
