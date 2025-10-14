@@ -72,7 +72,7 @@ def get_dblp_file():
                 for f in os.listdir(LOCAL_DIR):
                     os.remove(os.path.join(LOCAL_DIR, f))
             os.replace(tmp_file, f'{LOCAL_DIR}/{LOCAL_FILE}')
-            with open(f'{LOCAL_DIR}/{LOCAL_FILE}', "w") as f:
+            with open(f'{LOCAL_DIR}/{ETAG_FILE}', "w") as f:
                 f.write(new_etag)
         else:
             os.remove(tmp_file)
