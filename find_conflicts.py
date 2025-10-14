@@ -25,8 +25,8 @@ def main(committee_csv, author_csv):
     with open(committee_csv, newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            if row.get('dblp'):
-                committee_ids[row['dblp']] = row['person #']
+            if row.get('dblp_id'):
+                committee_ids[row['dblp_id']] = row['person #']
             person_num_mapping[row['person #']] = row['first name'] + ' ' + row['last name']
 
     cois = set()
@@ -35,9 +35,9 @@ def main(committee_csv, author_csv):
         reader = csv.DictReader(csvfile)
         for row in reader:
             # Only update if conflicts is missing or empty
-            dblp = row.get('dblp')
+            dblp = row.get('dblp_id')
             if dblp:
-                author_ids[row['dblp']] = row['person #']
+                author_ids[dblp] = row['person #']
                 person_num_mapping[row['person #']] = row['first name'] + ' ' + row['last name']
             if dblp in id2pubs:
                 for pub in id2pubs[dblp]:
@@ -49,8 +49,6 @@ def main(committee_csv, author_csv):
         author_name = person_num_mapping[author_num]
         committee_name = person_num_mapping[committee_num]
         print(f'{author_name} ({author_num} {author_dblp}) <-> {committee_name} ({committee_num} {committee_dblp})')
-    import pdb; pdb.set_trace()
-    cois
 
 
 if __name__ == "__main__":

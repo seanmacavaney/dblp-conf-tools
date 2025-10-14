@@ -39,3 +39,14 @@ to leave these ones blank.
 
 Finally, note that the matching process is not perfect due to challenges inherent to the authorship matching. It's a good idea
 to review the resulting file for anomalies and cross-reference with other sources when possible.
+
+## Identify Conflicts from Recent Co-Authorship
+
+The `find_conflicts.py` script takes in the author/committee CSV files that are augmented with DBLP information and
+identifies conflicts of interest based on recent co-authored papers.
+
+```
+python find_conflicts.py committee.csv authors.csv
+```
+
+It outputs the conflicts to stdout. We're still finding a way to import these conflicts into EasyChair.
