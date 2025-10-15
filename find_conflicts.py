@@ -1,3 +1,4 @@
+from collections import defaultdict
 import csv
 from dblp_data import get_author2id, get_author2pubs, get_pub2authors
 
@@ -29,7 +30,7 @@ def main(committee_csv, author_csv):
                 committee_ids[row['dblp_id']] = row['person #']
             person_num_mapping[row['person #']] = row['first name'] + ' ' + row['last name']
 
-    cois = set()
+    cois = defaultdict(list)
     author_ids = {}
     with open(author_csv, newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
@@ -38,17 +39,24 @@ def main(committee_csv, author_csv):
             dblp = row.get('dblp_id')
             if dblp:
                 author_ids[dblp] = row['person #']
-                person_num_mapping[row['person #']] = row['first name'] + ' ' + row['last name']
+            author_name = row['first name'] + ' ' + row['last name']
             if dblp in id2pubs:
                 for pub in id2pubs[dblp]:
                     for conflict in pub2ids[pub] & committee_ids.keys():
-                        cois.add((dblp, conflict))
-    for author_dblp, committee_dblp in sorted(cois):
-        author_num = author_ids[author_dblp]
-        committee_num = committee_ids[committee_dblp]
-        author_name = person_num_mapping[author_num]
-        committee_name = person_num_mapping[committee_num]
-        print(f'{author_name} ({author_num} {author_dblp}) <-> {committee_name} ({committee_num} {committee_dblp})')
+                        cois[(row['submission #'], conflict)].append(f'{pub} with {author_name}')
+
+    with open('conflicts.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=['Member #', 'Member Name', 'submission #', 'conflict_details'])
+        writer.writeheader()
+        for submission_num, committee_dblp in sorted(cois):
+            committee_num = committee_ids[committee_dblp]
+            committee_name = person_num_mapping[committee_num]
+            writer.writerow({
+                'Member #': committee_num,
+                'Member Name': committee_name,
+                'submission #': submission_num,
+                'conflict_details': '; '.join(cois[submission_num, committee_dblp])
+            })
 
 
 if __name__ == "__main__":

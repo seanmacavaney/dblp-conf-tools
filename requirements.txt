@@ -2,3 +2,4 @@ requests
 tqdm
 lxml
 pyterrier-services>=0.4.5
+selenium

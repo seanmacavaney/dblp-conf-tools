@@ -46,7 +46,24 @@ The `find_conflicts.py` script takes in the author/committee CSV files that are 
 identifies conflicts of interest based on recent co-authored papers.
 
 ```
-python find_conflicts.py committee.csv author.csv
+python find_conflicts.py committee.csv author.csv conflicts.csv
 ```
 
-It outputs the conflicts to stdout. We're still finding a way to import these conflicts into EasyChair.
+It outputs the conflicts to `conflicts.csv` (overwriting if it already exists). You can inspect this file or import it
+into EasyChair (following section).
+
+## Importing Conflicts to EasyChair
+
+Unfortunately, EasyChair does not provide a way to directly import conflicts. The `import_conflicts.py` script works around
+this issue using browser automation to enter the conflicts into EasyChair. Due to the reliance of browser automation on
+specific UI elements, this script is probably quite brittle and prone to breaking on EasyChair updates.
+
+NOTE: You need to have Firefox and [the Selenium driver](https://selenium-python.readthedocs.io/installation.html#drivers)
+installed for this to work.
+
+You should provide the conflicts file and the URL of the track to the script (example below). The script will launch
+a web browser and ask you to log in to EasyChair. Then it will navigate to the track page and import the conflicts.
+
+```
+python import_conflicts.py conflicts.csv https://easychair.org/conferences2/submissions?a=XXXXXXXX
+```
