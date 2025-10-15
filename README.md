@@ -46,7 +46,7 @@ The `find_conflicts.py` script takes in the author/committee CSV files that are 
 identifies conflicts of interest based on recent co-authored papers.
 
 ```
-python find_conflicts.py committee.csv authors.csv
+python find_conflicts.py committee.csv author.csv
 ```
 
 It outputs the conflicts to stdout. We're still finding a way to import these conflicts into EasyChair.
